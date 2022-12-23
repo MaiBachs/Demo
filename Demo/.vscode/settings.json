@@ -1,0 +1,7 @@
+{
+    "python.autoComplete.extraPaths": [
+    
+    ],
+    "editor.formatOnSave": false,
+    "python.analysis.extraPaths": []
+}
