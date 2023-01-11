@@ -4,6 +4,7 @@ from scipy import signal
 from scipy import ndimage
 import math
 import scipy
+from PIL import Image
 
 class FingerprintImageEnhancer(object):
     def __init__(self):
@@ -153,7 +154,8 @@ class FingerprintImageEnhancer(object):
         if np.remainder(sze,2) == 0:
             sze = sze+1
 
-        gauss = cv2.getGaussianKernel(np.int(sze),self.gradient_sigma)
+        x, y = np.mgrid[-sze // 2 + 1:sze // 2 + 1, -sze // 2 + 1:sze // 2 + 1]
+        gauss = np.exp(-(x**2 + y**2) / (2 * self.gradient_sigma**2))
         f = gauss * gauss.T
 
         fy,fx = np.gradient(f)                               #Gradient of Gaussian
@@ -166,10 +168,13 @@ class FingerprintImageEnhancer(object):
         Gxy = Gx*Gy
 
         #Now smooth the covariance data to perform a weighted summation of the data.
-        sze = np.fix(6*self.block_sigma)
+        sze = int(np.fix(6 * self.block_sigma))
+        if sze % 2 == 0:
+            sze += 1
+        gauss = np.exp(-0.5 * (np.linspace(-sze // 2, sze // 2, sze) / self.block_sigma) ** 2)
+        gauss /= np.sum(gauss) # normalize the kernel
+        f = np.outer(gauss, gauss)
 
-        gauss = cv2.getGaussianKernel(np.int(sze), self.block_sigma)
-        f = gauss * gauss.T
 
         Gxx = ndimage.convolve(Gxx,f)
         Gyy = ndimage.convolve(Gyy,f)
@@ -183,11 +188,12 @@ class FingerprintImageEnhancer(object):
 
 
         if self.orient_smooth_sigma:
-            sze = np.fix(6*self.orient_smooth_sigma)
-            if np.remainder(sze,2) == 0:
-                sze = sze+1
-            gauss = cv2.getGaussianKernel(np.int(sze), self.orient_smooth_sigma)
-            f = gauss * gauss.T
+            sze = int(np.fix(6*self.orient_smooth_sigma))
+            if sze % 2 == 0:
+                sze += 1
+            gauss = scipy.signal.windows.gaussian(sze, std=self.orient_smooth_sigma)
+            f = np.outer(gauss, gauss.T)
+
             cos2theta = ndimage.convolve(cos2theta,f)                   # Smoothed sine and cosine of
             sin2theta = ndimage.convolve(sin2theta,f)                   # doubled angles
 
@@ -505,6 +511,9 @@ class FingerprintImageEnhancer(object):
             new_cols = new_rows / aspect_ratio
 
             img = cv2.resize(img, (np.int(new_cols), np.int(new_rows)))
+
+        
+
 
         self.__ridge_segment(img)   # normalise the image and find a ROI
         self.__ridge_orient()       # compute orientation image

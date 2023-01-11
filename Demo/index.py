@@ -54,10 +54,9 @@ def main():
 
     #fftenhencement(img_filename, complete_image)
     
-    # normalise the image and find a ROI
+    #normalise the image and find a ROI
     image_enhancer = FingerprintImageEnhancer()         # Create object called image_enhancer
     if(len(sys.argv)<2):                                # load input image
-        print('loading sample image')
         img_name = save_filename
         img = cv2.imread(img_name)
     elif(len(sys.argv) >= 2):
